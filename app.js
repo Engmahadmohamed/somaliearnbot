@@ -32,6 +32,7 @@ const WITHDRAWAL_THRESHOLD = 5.00;
 const AD_DURATION = 30000; // 30 seconds
 const POPUP_INTERVAL = 120000; // Show popup every 2 minutes
 const MAX_AD_RETRIES = 2; // Maximum number of ad retry attempts
+const REFERRAL_BONUS = 0.05; // Referral bonus amount
 
 // Add to State Management
 let adRetryCount = 0;
@@ -51,7 +52,12 @@ const DEFAULT_USER_DATA = {
     totalEarned: 0,
     withdrawals: [],
     lastActive: new Date().toISOString(),
-    joinDate: new Date().toISOString()
+    joinDate: new Date().toISOString(),
+    referralCode: '', // User's referral code
+    referredBy: '', // Who referred this user
+    referralCount: 0, // Number of successful referrals
+    referralEarnings: 0, // Total earnings from referrals
+    referralMembers: [] // Array to store referral members
 };
 
 const DEFAULT_SETTINGS = {
@@ -116,7 +122,7 @@ function saveState() {
     saveToStorage(STORAGE_KEYS.STATISTICS, userStats);
 }
 
-// DOM Elements
+// Additional DOM Elements
 const balanceElement = document.getElementById('balance');
 const watchAdBtn = document.getElementById('watchAdBtn');
 const withdrawBtn = document.getElementById('withdrawBtn');
@@ -128,6 +134,11 @@ const successBanner = document.getElementById('successBanner');
 const withdrawalHistory = document.getElementById('withdrawalHistory');
 const adContainer = document.getElementById('adContainer');
 const messageBox = document.getElementById('messageBox');
+const referralLinkInput = document.getElementById('referralLink');
+const copyRefBtn = document.getElementById('copyRefBtn');
+const referralCountElement = document.getElementById('referralCount');
+const referralEarningsElement = document.getElementById('referralEarnings');
+const referralListElement = document.getElementById('referralList');
 
 // Message handling
 function showMessage(message, type = 'info') {
@@ -165,6 +176,37 @@ function showPopupAd() {
 // Start periodic popup checks
 setInterval(showPopupAd, POPUP_INTERVAL);
 
+// Add device ID management
+function getDeviceId() {
+    let deviceId = localStorage.getItem('device_id');
+    if (!deviceId) {
+        // Generate a unique device ID using timestamp and random string
+        deviceId = 'DEV_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        localStorage.setItem('device_id', deviceId);
+    }
+    return deviceId;
+}
+
+// Generate Referral Code
+function generateReferralCode() {
+    const deviceId = getDeviceId();
+    let referralCode = localStorage.getItem(`referral_code_${deviceId}`);
+    
+    if (!referralCode) {
+        // Generate a unique 6-character code using device ID
+        const randomPart = Math.random().toString(36).substring(2, 5).toUpperCase();
+        const devicePart = deviceId.substring(4, 7).toUpperCase();
+        referralCode = devicePart + randomPart;
+        
+        // Store the referral code for this device
+        localStorage.setItem(`referral_code_${deviceId}`, referralCode);
+        userData.referralCode = referralCode;
+        saveState();
+    }
+    
+    return referralCode;
+}
+
 // Update UI
 function updateUI() {
     // Update balance display
@@ -173,6 +215,23 @@ function updateUI() {
     // Enable/disable withdraw button
     withdrawBtn.disabled = userData.balance < WITHDRAWAL_THRESHOLD;
     
+    // Get device-specific referral code
+    const deviceId = getDeviceId();
+    const referralCode = localStorage.getItem(`referral_code_${deviceId}`) || generateReferralCode();
+    const referralLink = `https://t.me/somali_earn_bot?start=${referralCode}`;
+    
+    // Update referral link input
+    referralLinkInput.value = referralLink;
+    referralLinkInput.style.display = 'block';
+    referralLinkInput.readOnly = true;
+    
+    // Update referral stats
+    referralCountElement.textContent = userData.referralCount || 0;
+    referralEarningsElement.textContent = (userData.referralEarnings || 0).toFixed(3);
+    
+    // Update referral members list
+    updateReferralMembersList();
+    
     // Update withdrawal history
     withdrawalHistory.innerHTML = userData.withdrawals.map(w => `
         <div class="history-item">
@@ -180,11 +239,47 @@ function updateUI() {
             <p>ECV: ${w.ecv}</p>
             <p>Streak: ${userStats.streakDays} days</p>
             <p>Total Watched: ${userStats.totalAdsWatched}</p>
+            <p>Referrals: ${userData.referralCount} ($${userData.referralEarnings.toFixed(3)})</p>
         </div>
     `).join('');
 
     // Check for popup opportunity
     showPopupAd();
+}
+
+// Function to update referral members list
+function updateReferralMembersList() {
+    if (!userData.referralMembers || userData.referralMembers.length === 0) {
+        referralListElement.innerHTML = `
+            <div class="no-referrals">
+                No referral members yet. Share your link to earn rewards! 🎁
+            </div>
+        `;
+        return;
+    }
+
+    referralListElement.innerHTML = userData.referralMembers
+        .sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate))
+        .map((member, index) => {
+            const initial = member.name.charAt(0).toUpperCase();
+            const joinDate = new Date(member.joinDate).toLocaleDateString();
+            const isActive = new Date(member.lastActive) > new Date(Date.now() - 86400000);
+            
+            return `
+                <div class="referral-item">
+                    <div class="member-info">
+                        <div class="member-avatar">${initial}</div>
+                        <div class="member-details">
+                            <span class="member-name">${member.name}</span>
+                            <span class="join-date">Joined: ${joinDate}</span>
+                        </div>
+                    </div>
+                    <span class="member-status">
+                        ${isActive ? '🟢 Active' : '⚪ Inactive'}
+                    </span>
+                </div>
+            `;
+        }).join('');
 }
 
 // Watch Ad Function with retry logic
@@ -342,6 +437,88 @@ closeModalBtn.addEventListener('click', () => {
     showMessage('Withdrawal canceled', 'info');
 });
 
-// Initialize UI and Ads
+// Handle Referral Copy Button with better UX
+copyRefBtn.addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(referralLinkInput.value);
+        showMessage('Referral link copied! Share with friends to earn rewards! 🎁', 'success');
+    } catch (err) {
+        // Fallback for older browsers
+        referralLinkInput.select();
+        document.execCommand('copy');
+        showMessage('Referral link copied! Share with friends to earn rewards! 🎁', 'success');
+    }
+});
+
+// Check for Referral Code on Load (from Telegram bot)
+function checkReferral() {
+    const startParam = tg.initDataUnsafe?.start_param;
+    const deviceId = getDeviceId();
+    const myReferralCode = localStorage.getItem(`referral_code_${deviceId}`);
+    
+    if (startParam && !userData.referredBy && startParam !== myReferralCode) {
+        userData.referredBy = startParam;
+        saveState();
+        
+        // Send referral data to Telegram
+        tg.sendData(JSON.stringify({
+            type: 'referral',
+            referralCode: startParam,
+            newUser: {
+                code: myReferralCode,
+                deviceId: deviceId,
+                name: tg.initDataUnsafe?.user?.first_name || 'Anonymous User',
+                id: tg.initDataUnsafe?.user?.id
+            }
+        }));
+    }
+}
+
+// Add referral member
+function addReferralMember(memberData) {
+    if (!userData.referralMembers) {
+        userData.referralMembers = [];
+    }
+    
+    const newMember = {
+        id: memberData.id,
+        name: memberData.name || 'Anonymous User',
+        joinDate: new Date().toISOString(),
+        lastActive: new Date().toISOString(),
+        totalEarned: 0
+    };
+    
+    userData.referralMembers.push(newMember);
+    userData.referralCount = (userData.referralCount || 0) + 1;
+    userData.referralEarnings = (userData.referralEarnings || 0) + REFERRAL_BONUS;
+    
+    saveState();
+    updateUI();
+    
+    showMessage(`New referral member joined! You earned $${REFERRAL_BONUS.toFixed(3)}! 🎉`, 'success');
+}
+
+// Add referral bonus with improved feedback
+function addReferralBonus(referrerCode, userData) {
+    const referrerData = loadFromStorage(`userData_${referrerCode}`, null);
+    if (referrerData) {
+        referrerData.balance += REFERRAL_BONUS;
+        referrerData.referralCount = (referrerData.referralCount || 0) + 1;
+        referrerData.referralEarnings = (referrerData.referralEarnings || 0) + REFERRAL_BONUS;
+        
+        // Add member to referrer's list
+        addReferralMember({
+            id: userData.id,
+            name: userData.name
+        });
+        
+        saveToStorage(`userData_${referrerCode}`, referrerData);
+        showMessage(`New referral! You earned $${REFERRAL_BONUS.toFixed(3)}! 🎉`, 'success');
+        updateUI();
+    }
+}
+
+// Initialize
+checkReferral();
 updateUI();
 initializeInAppAds();

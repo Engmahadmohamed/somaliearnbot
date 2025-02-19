@@ -497,3 +497,263 @@ h2, h3 {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-color);
 }
+
+/* Referral Section Styles */
+.referral-section {
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    backdrop-filter: blur(10px);
+    margin-bottom: 32px;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.referral-box {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: var(--border-radius);
+    padding: 16px;
+    margin: 15px 0;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.referral-box input {
+    flex: 1;
+    min-width: 200px;
+    padding: 14px;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    background: white;
+    color: #1c1f26;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.referral-box input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+}
+
+.referral-box button {
+    padding: 14px 28px;
+    white-space: nowrap;
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border-radius: var(--border-radius);
+}
+
+.referral-box button:hover {
+    transform: translateY(-2px);
+    background: var(--accent-color);
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+}
+
+/* Add a special effect when copying */
+.referral-box input:active {
+    background-color: rgba(74, 222, 128, 0.1);
+}
+
+.referral-info {
+    color: white;
+    font-size: 1rem;
+    text-align: center;
+    margin-top: 12px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    animation: float 3s ease-in-out infinite;
+    opacity: 0.95;
+}
+
+.referral-info:hover {
+    opacity: 1;
+}
+
+/* Add to responsive section */
+@media (max-width: 640px) {
+    .referral-box {
+        padding: 12px;
+    }
+    
+    .referral-box input {
+        font-size: 0.9rem;
+        padding: 12px;
+    }
+    
+    .referral-box button {
+        width: 100%;
+        padding: 12px 20px;
+    }
+}
+
+.referral-stats {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(74, 222, 128, 0.05);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(74, 222, 128, 0.1);
+    display: flex;
+    justify-content: space-around;
+    gap: 12px;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.referral-stats p {
+    color: var(--text-color);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.referral-stats span {
+    color: var(--accent-color);
+    font-weight: 600;
+    font-size: 1.1rem;
+    display: inline-block;
+    margin-left: 4px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@media (max-width: 640px) {
+    .referral-stats {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+}
+
+/* Referral Members Styles */
+.referral-members {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(74, 222, 128, 0.1);
+}
+
+.referral-members h4 {
+    color: var(--text-color);
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    text-align: center;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.referral-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.referral-item {
+    background: rgba(74, 222, 128, 0.05);
+    border: 1px solid rgba(74, 222, 128, 0.1);
+    border-radius: var(--border-radius);
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideIn 0.3s ease-out;
+    transition: all 0.3s ease;
+}
+
+.referral-item:hover {
+    transform: translateX(4px);
+    background: rgba(74, 222, 128, 0.1);
+}
+
+.referral-item .member-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.referral-item .member-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: white;
+}
+
+.referral-item .member-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.referral-item .member-name {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.referral-item .join-date {
+    color: var(--accent-color);
+    font-size: 0.8rem;
+}
+
+.referral-item .member-status {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    background: rgba(74, 222, 128, 0.1);
+    color: var(--accent-color);
+}
+
+.no-referrals {
+    text-align: center;
+    color: var(--text-color);
+    padding: 20px;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* Add to responsive section */
+@media (max-width: 640px) {
+    .referral-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .referral-item .member-status {
+        align-self: flex-start;
+    }
+}
+
+.referral-banner {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #4ade80 100%);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.referral-banner h3 {
+    font-size: 24px;
+    margin: 0 0 10px 0;
+    color: white;
+}
+
+.bonus-text {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px 0;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}

@@ -61,10 +61,10 @@
                 
                 <!-- Referral Members List -->
                 <div class="referral-members">
-                    <h4>Your Referral Members 👥</h4>
+                    <h4>Your Referral Members 👥 (0/5)</h4>
                     <div class="referral-progress">
                         <div class="progress-bar">
-                            <div id="referralProgressBar" class="progress-fill"></div>
+                            <div id="referralProgressBar" class="progress-fill" style="width: 0%"></div>
                         </div>
                         <p class="progress-text">
                             <span id="remainingSlots">5</span> slots remaining
@@ -87,9 +87,18 @@
         <!-- ECV Input Modal -->
         <div id="ecvModal" class="modal">
             <div class="modal-content">
-                <h2>Enter ECV Number</h2>
-                <input type="text" id="ecvInput" placeholder="Enter your ECV number">
-                <button id="submitEcv" class="btn primary">Submit</button>
+                <h2>Enter Payment Details</h2>
+                <div class="payment-options">
+                    <select id="paymentMethod" class="payment-select">
+                        <option value="evc">EVC Plus</option>
+                        <option value="zaad">Zaad Service</option>
+                        <option value="sahal">Sahal</option>
+                        <option value="edahab">eDahab</option>
+                    </select>
+                </div>
+                <input type="text" id="ecvInput" placeholder="Enter your phone number" pattern="[0-9]+" maxlength="12">
+                <p class="payment-info">Enter your Somali phone number (e.g., 252xxxxxxxxx)</p>
+                <button id="submitEcv" class="btn primary">Submit Withdrawal</button>
                 <button id="closeModal" class="btn secondary">Cancel</button>
             </div>
         </div>

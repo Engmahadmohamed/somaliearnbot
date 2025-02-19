@@ -210,8 +210,19 @@ function generateReferralCode() {
 
 // Update UI
 function updateUI() {
-    // Update balance display
+    // Update balance displays
     balanceElement.textContent = userData.balance.toFixed(3);
+    const currentBalanceElement = document.getElementById('currentBalance');
+    if (currentBalanceElement) {
+        currentBalanceElement.textContent = userData.balance.toFixed(3);
+    }
+
+    // Update total earnings
+    const totalEarnedElement = document.getElementById('totalEarned');
+    if (totalEarnedElement) {
+        const totalEarned = (userData.totalEarned || 0) + (userData.referralEarnings || 0);
+        totalEarnedElement.textContent = totalEarned.toFixed(3);
+    }
     
     // Enable/disable withdraw button
     withdrawBtn.disabled = userData.balance < WITHDRAWAL_THRESHOLD;
@@ -226,23 +237,44 @@ function updateUI() {
     referralLinkInput.style.display = 'block';
     referralLinkInput.readOnly = true;
     
-    // Initialize referral data if undefined
-    if (typeof userData.referralCount === 'undefined') userData.referralCount = 0;
-    if (typeof userData.referralEarnings === 'undefined') userData.referralEarnings = 0;
-    
     // Update referral stats display
-    const currentReferrals = userData.referralCount;
+    const currentReferrals = userData.referralCount || 0;
+    const remainingSlots = MAX_REFERRALS_PER_DEVICE - currentReferrals;
     
-    // Update the referral count display
+    // Update all referral UI elements
     if (referralCountElement) {
         referralCountElement.textContent = currentReferrals;
     }
     
-    // Update the referral earnings display
     if (referralEarningsElement) {
-        referralEarningsElement.textContent = userData.referralEarnings.toFixed(3);
+        referralEarningsElement.textContent = (userData.referralEarnings || 0).toFixed(3);
     }
-    
+
+    // Update slots used display
+    const currentReferralsElement = document.getElementById('currentReferrals');
+    if (currentReferralsElement) {
+        currentReferralsElement.textContent = currentReferrals;
+    }
+
+    // Update remaining slots
+    const remainingSlotsElement = document.getElementById('remainingSlots');
+    if (remainingSlotsElement) {
+        remainingSlotsElement.textContent = remainingSlots;
+    }
+
+    // Update progress bar
+    const progressBar = document.getElementById('referralProgressBar');
+    if (progressBar) {
+        const progressPercentage = (currentReferrals / MAX_REFERRALS_PER_DEVICE) * 100;
+        progressBar.style.width = `${progressPercentage}%`;
+    }
+
+    // Update referral members count in the header
+    const referralMembersHeader = document.querySelector('.referral-members h4');
+    if (referralMembersHeader) {
+        referralMembersHeader.textContent = `Your Referral Members 👥 (${currentReferrals}/${MAX_REFERRALS_PER_DEVICE})`;
+    }
+
     // Save the updated state
     saveState();
     
@@ -256,7 +288,7 @@ function updateUI() {
             <p>ECV: ${w.ecv}</p>
             <p>Streak: ${userStats.streakDays} days</p>
             <p>Total Watched: ${userStats.totalAdsWatched}</p>
-            <p>Referrals: ${userData.referralCount}/${MAX_REFERRALS_PER_DEVICE} ($${userData.referralEarnings.toFixed(3)})</p>
+            <p>Referrals: ${userData.referralCount}/${MAX_REFERRALS_PER_DEVICE} ($${(userData.referralEarnings || 0).toFixed(3)})</p>
         </div>
     `).join('');
 
@@ -390,7 +422,7 @@ function handleWithdrawal() {
         show_8975602().then(() => {
             adCompleted = true;
             ecvModal.style.display = 'flex';
-            showMessage('Please enter your ECV number', 'info');
+            showMessage('Please enter your payment details', 'info');
             adRetryCount = 0; // Reset on success
         }).catch(error => {
             console.error('Withdrawal ad failed:', error);
@@ -411,9 +443,16 @@ function handleWithdrawal() {
 }
 
 // Process withdrawal
-function processWithdrawal(ecv) {
-    if (ecv.trim() === '') {
-        showMessage('Please enter a valid ECV number', 'error');
+function processWithdrawal(phoneNumber) {
+    if (!phoneNumber || phoneNumber.trim() === '') {
+        showMessage('Please enter a valid phone number', 'error');
+        return;
+    }
+
+    // Validate phone number format (Somali format)
+    const phoneRegex = /^252[0-9]{9}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+        showMessage('Please enter a valid Somali phone number (252xxxxxxxxx)', 'error');
         return;
     }
 
@@ -423,10 +462,13 @@ function processWithdrawal(ecv) {
         return;
     }
     
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    
     const withdrawal = {
         amount: WITHDRAWAL_THRESHOLD,
         date: new Date().toISOString(),
-        ecv: ecv,
+        phoneNumber: phoneNumber,
+        paymentMethod: paymentMethod,
         status: 'pending'
     };
     
@@ -439,11 +481,11 @@ function processWithdrawal(ecv) {
         
         // Update UI
         updateUI();
-        showMessage(`Withdrawal of $${WITHDRAWAL_THRESHOLD.toFixed(2)} processed successfully!`, 'success');
+        showMessage(`Withdrawal of $${WITHDRAWAL_THRESHOLD.toFixed(2)} will be sent to your ${paymentMethod.toUpperCase()} number!`, 'success');
         
         // Close modal
         ecvModal.style.display = 'none';
-        ecvInput.value = '';
+        document.getElementById('ecvInput').value = '';
         
         // Send data to Telegram
         tg.sendData(JSON.stringify({
@@ -513,11 +555,11 @@ function checkReferral() {
 // Add referral member
 function addReferralMember(memberData) {
     const deviceId = getDeviceId();
-    const currentReferrals = userData.referralMembers?.length || 0;
+    const currentReferrals = userData.referralCount || 0;
     
     // Check if device has reached referral limit
     if (currentReferrals >= MAX_REFERRALS_PER_DEVICE) {
-        showMessage(`Maximum referral limit (${MAX_REFERRALS_PER_DEVICE}) reached for this device! 🔒`, 'error');
+        showMessage(`Maximum referral limit (${MAX_REFERRALS_PER_DEVICE}) reached! 🔒`, 'error');
         return false;
     }
     
@@ -534,15 +576,17 @@ function addReferralMember(memberData) {
         deviceId: deviceId
     };
     
+    // Add the new member and update stats
     userData.referralMembers.push(newMember);
-    userData.referralCount = (userData.referralCount || 0) + 1;
+    userData.referralCount = currentReferrals + 1;
     userData.referralEarnings = (userData.referralEarnings || 0) + REFERRAL_BONUS;
+    userData.balance = (userData.balance || 0) + REFERRAL_BONUS; // Add bonus to current balance
     
     saveState();
     updateUI();
     
-    const remainingReferrals = MAX_REFERRALS_PER_DEVICE - (userData.referralCount || 0);
-    showMessage(`New referral member joined! You earned $${REFERRAL_BONUS.toFixed(3)}! 🎉 (${remainingReferrals} referrals remaining)`, 'success');
+    const remainingSlots = MAX_REFERRALS_PER_DEVICE - userData.referralCount;
+    showMessage(`New referral member joined! Earned $${REFERRAL_BONUS.toFixed(3)}! Current balance: $${userData.balance.toFixed(3)} 🎉 (${remainingSlots} slots remaining)`, 'success');
     return true;
 }
 

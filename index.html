@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src='//whephiwums.com/vignette.min.js' data-zone='8975602' data-sdk='show_8975602'></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ad-Watching Earnings App</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async=""></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ad-Watching Earnings</h1>
+            <div id="messageBox" class="message-box"></div>
+            <div class="balance-container">
+                <h2>Current Balance</h2>
+                <p class="balance">$<span id="balance">0.000</span></p>
+            </div>
+        </header>
+
+        <main>
+            <div class="actions">
+                <button id="watchAdBtn" class="btn primary">Watch Ad (+$0.003)</button>
+                <button id="withdrawBtn" class="btn secondary" disabled>Withdraw $5.00</button>
+                <a href="https://wa.me/252684199130" class="btn help" target="_blank">Need Help?</a>
+            </div>
+
+            <div class="history-section">
+                <h3>Withdrawal History</h3>
+                <div id="withdrawalHistory" class="history-list">
+                    <!-- Withdrawal history will be populated here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- ECV Input Modal -->
+        <div id="ecvModal" class="modal">
+            <div class="modal-content">
+                <h2>Enter ECV Number</h2>
+                <input type="text" id="ecvInput" placeholder="Enter your ECV number">
+                <button id="submitEcv" class="btn primary">Submit</button>
+                <button id="closeModal" class="btn secondary">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Success Banner -->
+        <div id="successBanner" class="banner">
+            <p>Withdrawal successful! Your payment is being processed.</p>
+        </div>
+    </div>
+
+    <!-- Ad container -->
+    <div id="adContainer"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

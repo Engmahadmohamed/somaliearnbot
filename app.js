@@ -31,6 +31,12 @@ const EARNING_PER_AD = 0.003;
 const WITHDRAWAL_THRESHOLD = 5.00;
 const AD_DURATION = 30000; // 30 seconds
 const POPUP_INTERVAL = 120000; // Show popup every 2 minutes
+const MAX_AD_RETRIES = 2; // Maximum number of ad retry attempts
+
+// Add to State Management
+let adRetryCount = 0;
+let lastAdAttempt = 0;
+const AD_RETRY_DELAY = 3000; // 3 seconds delay between retries
 
 // LocalStorage Keys
 const STORAGE_KEYS = {
@@ -181,29 +187,64 @@ function updateUI() {
     showPopupAd();
 }
 
-// Watch Ad Function
-function watchAd() {
+// Watch Ad Function with retry logic
+function watchAd(isRetry = false) {
+    const now = Date.now();
+    
+    // Check if we should reset retry count
+    if (now - lastAdAttempt > AD_DURATION) {
+        adRetryCount = 0;
+    }
+    
+    // If this is a retry, add a small delay
+    if (isRetry) {
+        if (adRetryCount >= MAX_AD_RETRIES) {
+            showMessage('Too many failed attempts. Please try again later.', 'error');
+            watchAdBtn.disabled = false;
+            adContainer.style.display = 'none';
+            return;
+        }
+        showMessage('Retrying ad load...', 'loading');
+    } else {
+        showMessage('Loading ad...', 'loading');
+    }
+    
+    lastAdAttempt = now;
     watchAdBtn.disabled = true;
     adContainer.style.display = 'block';
-    showMessage('Loading ad...', 'loading');
     
     show_8975602().then(() => {
+        // Ad watched successfully
         userData.balance += EARNING_PER_AD;
         userData.totalEarned += EARNING_PER_AD;
         updateStatistics(true);
         saveState();
         updateUI();
         showMessage(`You earned $${EARNING_PER_AD.toFixed(3)} by watching an ad!`, 'success');
+        adRetryCount = 0; // Reset retry count on success
     }).catch(error => {
         console.error('Ad failed to load:', error);
-        showMessage('Ad canceled - no reward given', 'error');
+        adRetryCount++;
+        
+        if (adRetryCount < MAX_AD_RETRIES) {
+            // Attempt retry after delay
+            setTimeout(() => {
+                watchAd(true);
+            }, AD_RETRY_DELAY);
+            showMessage('Ad load failed - retrying...', 'info');
+        } else {
+            showMessage('Ad canceled - please try again in a few moments', 'error');
+            adRetryCount = 0; // Reset retry count after max attempts
+        }
     }).finally(() => {
-        watchAdBtn.disabled = false;
-        adContainer.style.display = 'none';
+        if (adRetryCount === 0) { // Only enable button if we're not retrying
+            watchAdBtn.disabled = false;
+            adContainer.style.display = 'none';
+        }
     });
 }
 
-// Handle withdrawal
+// Handle withdrawal with retry logic
 function handleWithdrawal() {
     if (userData.balance < WITHDRAWAL_THRESHOLD) {
         showMessage(`You need at least $${WITHDRAWAL_THRESHOLD.toFixed(2)} to withdraw.`, 'error');
@@ -212,18 +253,30 @@ function handleWithdrawal() {
     
     showMessage('Loading withdrawal ad...', 'loading');
     let adCompleted = false;
+    adRetryCount = 0; // Reset retry count for withdrawal ad
     
-    // Show ad before withdrawal
-    show_8975602().then(() => {
-        adCompleted = true;
-        // Show ECV modal
-        ecvModal.style.display = 'flex';
-        showMessage('Please enter your ECV number', 'info');
-    }).catch(error => {
-        console.error('Withdrawal ad failed:', error);
-        showMessage('Withdrawal canceled - ad not completed', 'error');
-        adCompleted = false;
-    });
+    function tryWithdrawalAd() {
+        show_8975602().then(() => {
+            adCompleted = true;
+            ecvModal.style.display = 'flex';
+            showMessage('Please enter your ECV number', 'info');
+            adRetryCount = 0; // Reset on success
+        }).catch(error => {
+            console.error('Withdrawal ad failed:', error);
+            adRetryCount++;
+            
+            if (adRetryCount < MAX_AD_RETRIES) {
+                showMessage('Withdrawal ad failed - retrying...', 'info');
+                setTimeout(tryWithdrawalAd, AD_RETRY_DELAY);
+            } else {
+                showMessage('Withdrawal canceled - please try again in a few moments', 'error');
+                adCompleted = false;
+                adRetryCount = 0;
+            }
+        });
+    }
+    
+    tryWithdrawalAd();
 }
 
 // Process withdrawal
@@ -280,7 +333,7 @@ function processWithdrawal(ecv) {
 }
 
 // Event Listeners
-watchAdBtn.addEventListener('click', watchAd);
+watchAdBtn.addEventListener('click', () => watchAd());
 withdrawBtn.addEventListener('click', handleWithdrawal);
 submitEcvBtn.addEventListener('click', () => processWithdrawal(ecvInput.value));
 closeModalBtn.addEventListener('click', () => {

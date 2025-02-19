@@ -219,18 +219,32 @@ function updateUI() {
     // Get device-specific referral code
     const deviceId = getDeviceId();
     const referralCode = localStorage.getItem(`referral_code_${deviceId}`) || generateReferralCode();
-    const referralLink = `https://t.me/somali_earn_bot?start=${referralCode}`;
+    const referralLink = `https://t.me/AdWatchingEarnings_bot?start=${referralCode}`;
     
     // Update referral link input
     referralLinkInput.value = referralLink;
     referralLinkInput.style.display = 'block';
     referralLinkInput.readOnly = true;
     
-    // Update referral stats with remaining count
-    const currentReferrals = userData.referralCount || 0;
-    const remainingReferrals = MAX_REFERRALS_PER_DEVICE - currentReferrals;
-    referralCountElement.textContent = `${currentReferrals}/${MAX_REFERRALS_PER_DEVICE}`;
-    referralEarningsElement.textContent = (userData.referralEarnings || 0).toFixed(3);
+    // Initialize referral data if undefined
+    if (typeof userData.referralCount === 'undefined') userData.referralCount = 0;
+    if (typeof userData.referralEarnings === 'undefined') userData.referralEarnings = 0;
+    
+    // Update referral stats display
+    const currentReferrals = userData.referralCount;
+    
+    // Update the referral count display
+    if (referralCountElement) {
+        referralCountElement.textContent = currentReferrals;
+    }
+    
+    // Update the referral earnings display
+    if (referralEarningsElement) {
+        referralEarningsElement.textContent = userData.referralEarnings.toFixed(3);
+    }
+    
+    // Save the updated state
+    saveState();
     
     // Update referral members list
     updateReferralMembersList();

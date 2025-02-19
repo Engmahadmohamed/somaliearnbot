@@ -36,6 +36,12 @@
                 <div class="referral-banner">
                     <h3>🎁 Invite Friends</h3>
                     <p class="bonus-text">+$0.05 for each referral!</p>
+                    <div class="referral-limit-info">
+                        <p class="limit-text">Maximum 5 referrals per user</p>
+                        <div class="limit-progress">
+                            <span id="currentReferrals">0</span>/5 slots used
+                        </div>
+                    </div>
                     <div class="referral-box">
                         <input type="text" id="referralLink" value="https://t.me/somali_earn_bot?start=I63X5O" readonly>
                         <button id="copyRefBtn" class="btn primary">Copy Link</button>
@@ -50,6 +56,14 @@
                 <!-- Referral Members List -->
                 <div class="referral-members">
                     <h4>Your Referral Members 👥</h4>
+                    <div class="referral-progress">
+                        <div class="progress-bar">
+                            <div id="referralProgressBar" class="progress-fill"></div>
+                        </div>
+                        <p class="progress-text">
+                            <span id="remainingSlots">5</span> slots remaining
+                        </p>
+                    </div>
                     <div id="referralList" class="referral-list">
                         <!-- Referral members will be listed here -->
                     </div>

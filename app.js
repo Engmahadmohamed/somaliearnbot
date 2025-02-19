@@ -33,6 +33,7 @@ const AD_DURATION = 30000; // 30 seconds
 const POPUP_INTERVAL = 120000; // Show popup every 2 minutes
 const MAX_AD_RETRIES = 2; // Maximum number of ad retry attempts
 const REFERRAL_BONUS = 0.05; // Referral bonus amount
+const MAX_REFERRALS_PER_DEVICE = 5; // Maximum referrals per device
 
 // Add to State Management
 let adRetryCount = 0;
@@ -225,8 +226,10 @@ function updateUI() {
     referralLinkInput.style.display = 'block';
     referralLinkInput.readOnly = true;
     
-    // Update referral stats
-    referralCountElement.textContent = userData.referralCount || 0;
+    // Update referral stats with remaining count
+    const currentReferrals = userData.referralCount || 0;
+    const remainingReferrals = MAX_REFERRALS_PER_DEVICE - currentReferrals;
+    referralCountElement.textContent = `${currentReferrals}/${MAX_REFERRALS_PER_DEVICE}`;
     referralEarningsElement.textContent = (userData.referralEarnings || 0).toFixed(3);
     
     // Update referral members list
@@ -239,47 +242,66 @@ function updateUI() {
             <p>ECV: ${w.ecv}</p>
             <p>Streak: ${userStats.streakDays} days</p>
             <p>Total Watched: ${userStats.totalAdsWatched}</p>
-            <p>Referrals: ${userData.referralCount} ($${userData.referralEarnings.toFixed(3)})</p>
+            <p>Referrals: ${userData.referralCount}/${MAX_REFERRALS_PER_DEVICE} ($${userData.referralEarnings.toFixed(3)})</p>
         </div>
     `).join('');
 
     // Check for popup opportunity
     showPopupAd();
+    
+    // Update referral link visibility based on limit
+    if (currentReferrals >= MAX_REFERRALS_PER_DEVICE) {
+        referralLinkInput.style.opacity = '0.5';
+        copyRefBtn.disabled = true;
+        copyRefBtn.style.opacity = '0.5';
+        document.querySelector('.referral-info').textContent = 'Maximum referral limit reached! 🔒';
+    }
 }
 
-// Function to update referral members list
+// Update referral members list
 function updateReferralMembersList() {
     if (!userData.referralMembers || userData.referralMembers.length === 0) {
+        const remainingReferrals = MAX_REFERRALS_PER_DEVICE;
         referralListElement.innerHTML = `
             <div class="no-referrals">
                 No referral members yet. Share your link to earn rewards! 🎁
+                <br>
+                <span style="color: var(--accent-color);">(${remainingReferrals} referrals available per user)</span>
             </div>
         `;
         return;
     }
 
-    referralListElement.innerHTML = userData.referralMembers
-        .sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate))
-        .map((member, index) => {
-            const initial = member.name.charAt(0).toUpperCase();
-            const joinDate = new Date(member.joinDate).toLocaleDateString();
-            const isActive = new Date(member.lastActive) > new Date(Date.now() - 86400000);
-            
-            return `
-                <div class="referral-item">
-                    <div class="member-info">
-                        <div class="member-avatar">${initial}</div>
-                        <div class="member-details">
-                            <span class="member-name">${member.name}</span>
-                            <span class="join-date">Joined: ${joinDate}</span>
+    const remainingReferrals = MAX_REFERRALS_PER_DEVICE - userData.referralMembers.length;
+    const referralStatus = remainingReferrals > 0 
+        ? `<div class="referral-status">Remaining referrals: ${remainingReferrals} 🎯</div>`
+        : '<div class="referral-status">Maximum referrals reached! 🔒</div>';
+
+    referralListElement.innerHTML = `
+        ${referralStatus}
+        ${userData.referralMembers
+            .sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate))
+            .map((member, index) => {
+                const initial = member.name.charAt(0).toUpperCase();
+                const joinDate = new Date(member.joinDate).toLocaleDateString();
+                const isActive = new Date(member.lastActive) > new Date(Date.now() - 86400000);
+                
+                return `
+                    <div class="referral-item">
+                        <div class="member-info">
+                            <div class="member-avatar">${initial}</div>
+                            <div class="member-details">
+                                <span class="member-name">${member.name}</span>
+                                <span class="join-date">Joined: ${joinDate}</span>
+                            </div>
                         </div>
+                        <span class="member-status">
+                            ${isActive ? '🟢 Active' : '⚪ Inactive'}
+                        </span>
                     </div>
-                    <span class="member-status">
-                        ${isActive ? '🟢 Active' : '⚪ Inactive'}
-                    </span>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('')}
+    `;
 }
 
 // Watch Ad Function with retry logic
@@ -476,6 +498,15 @@ function checkReferral() {
 
 // Add referral member
 function addReferralMember(memberData) {
+    const deviceId = getDeviceId();
+    const currentReferrals = userData.referralMembers?.length || 0;
+    
+    // Check if device has reached referral limit
+    if (currentReferrals >= MAX_REFERRALS_PER_DEVICE) {
+        showMessage(`Maximum referral limit (${MAX_REFERRALS_PER_DEVICE}) reached for this device! 🔒`, 'error');
+        return false;
+    }
+    
     if (!userData.referralMembers) {
         userData.referralMembers = [];
     }
@@ -485,7 +516,8 @@ function addReferralMember(memberData) {
         name: memberData.name || 'Anonymous User',
         joinDate: new Date().toISOString(),
         lastActive: new Date().toISOString(),
-        totalEarned: 0
+        totalEarned: 0,
+        deviceId: deviceId
     };
     
     userData.referralMembers.push(newMember);
@@ -495,7 +527,9 @@ function addReferralMember(memberData) {
     saveState();
     updateUI();
     
-    showMessage(`New referral member joined! You earned $${REFERRAL_BONUS.toFixed(3)}! 🎉`, 'success');
+    const remainingReferrals = MAX_REFERRALS_PER_DEVICE - (userData.referralCount || 0);
+    showMessage(`New referral member joined! You earned $${REFERRAL_BONUS.toFixed(3)}! 🎉 (${remainingReferrals} referrals remaining)`, 'success');
+    return true;
 }
 
 // Add referral bonus with improved feedback

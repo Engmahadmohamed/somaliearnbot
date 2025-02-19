@@ -610,6 +610,10 @@ h2, h3 {
     color: var(--text-color);
     font-size: 0.9rem;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .referral-stats span {
@@ -734,12 +738,12 @@ h2, h3 {
 }
 
 .referral-banner {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #4ade80 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
     border-radius: var(--border-radius);
     padding: 24px;
     text-align: center;
     color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(74, 222, 128, 0.2);
     margin-bottom: 20px;
     animation: fadeInUp 0.5s ease-out;
 }
@@ -756,4 +760,120 @@ h2, h3 {
     margin: 10px 0;
     color: #fff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.referral-status {
+    background: rgba(74, 222, 128, 0.1);
+    padding: 12px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    margin-bottom: 16px;
+    color: var(--accent-color);
+    font-weight: 500;
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.referral-box.limit-reached {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.referral-box.limit-reached input,
+.referral-box.limit-reached button {
+    cursor: not-allowed;
+}
+
+.referral-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(74, 222, 128, 0.1);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+}
+
+.referral-count.limit-reached {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error-color);
+}
+
+.no-referrals span {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.9rem;
+    font-style: normal;
+    font-weight: 500;
+}
+
+.referral-limit-info {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: var(--border-radius);
+    margin: 15px 0;
+    text-align: center;
+}
+
+.limit-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.limit-progress {
+    font-size: 1.2rem;
+    color: white;
+    font-weight: 700;
+}
+
+.referral-progress {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.progress-bar {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--primary-color);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    opacity: 0.9;
+}
+
+.progress-text span {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+/* Add responsive styles */
+@media (max-width: 640px) {
+    .referral-limit-info {
+        padding: 10px;
+    }
+    
+    .limit-text {
+        font-size: 1rem;
+    }
+    
+    .limit-progress {
+        font-size: 1.1rem;
+    }
+    
+    .progress-bar {
+        height: 8px;
+    }
 }

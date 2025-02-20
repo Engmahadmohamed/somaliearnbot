@@ -27,7 +27,7 @@ function initializeInAppAds() {
 }
 
 // Constants
-const EARNING_PER_AD = 0.003;
+const EARNING_PER_AD =0.1;
 const WITHDRAWAL_THRESHOLD = 5.00;
 const AD_DURATION = 30000; // 30 seconds
 const POPUP_INTERVAL = 120000; // Show popup every 2 minutes

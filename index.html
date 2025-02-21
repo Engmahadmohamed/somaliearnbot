@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src='//whephiwums.com/vignette.min.js' data-zone='8975602' data-sdk='show_8975602'></script>
+    <s<script src='//whephiwums.com/sdk.js' data-zone='8975602' data-sdk='show_8975602'></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ad-Watching Earnings App</title>
@@ -185,6 +185,50 @@
             referralLink.select();
             document.execCommand('copy');
             alert('Referral link copied!');
+        });
+        // Ad functionality
+        let adShowing = false;
+        
+        document.getElementById('watchAdBtn').addEventListener('click', function() {
+            if (adShowing) return;
+            adShowing = true;
+            const adBtn = this;
+            adBtn.disabled = true;
+
+            // Show rewarded ad
+            show_8975602('pop').then(() => {
+                // Add reward after successful ad view
+                userData.balance += 0.1;
+                document.getElementById('balance').textContent = userData.balance.toFixed(3);
+                
+                // Enable withdraw button if balance reaches $5
+                withdrawBtn.disabled = userData.balance < 5.00;
+                
+                // Save updated data
+                saveUserData();
+                
+                // Show success message
+                const messageBox = document.getElementById('messageBox');
+                messageBox.textContent = 'Successfully earned $0.1!';
+                messageBox.style.display = 'block';
+                
+                // Reset button after delay
+                setTimeout(() => {
+                    adBtn.disabled = false;
+                    adShowing = false;
+                    messageBox.style.display = 'none';
+                }, 30000); // 30 second cooldown
+            }).catch(e => {
+                // Handle ad error
+                adBtn.disabled = false;
+                adShowing = false;
+                const messageBox = document.getElementById('messageBox');
+                messageBox.textContent = 'Failed to load ad. Please try again.';
+                messageBox.style.display = 'block';
+                setTimeout(() => {
+                    messageBox.style.display = 'none';
+                }, 3000);
+            });
         });
     </script>
 

@@ -27,9 +27,9 @@ function initializeInAppAds() {
 }
 
 // Constants
-const EARNING_PER_AD =0.1;
+const EARNING_PER_AD = 0.1;
 const WITHDRAWAL_THRESHOLD = 5.00;
-const AD_DURATION = 30000; // 30 seconds
+const AD_DURATION = 1000; // Changed to 1 second
 const POPUP_INTERVAL = 120000; // Show popup every 2 minutes
 const MAX_AD_RETRIES = 2; // Maximum number of ad retry attempts
 const REFERRAL_BONUS = 0.05; // Referral bonus amount
@@ -360,36 +360,19 @@ function updateReferralMembersList() {
                     </div>
                 `;
             }).join('')}
-    `;
-}
-
+    `}
 // Watch Ad Function with retry logic
 function watchAd(isRetry = false) {
     const now = Date.now();
     
-    // Check if we should reset retry count
     if (now - lastAdAttempt > AD_DURATION) {
         adRetryCount = 0;
     }
     
-    // If this is a retry, add a small delay
-    if (isRetry) {
-        if (adRetryCount >= MAX_AD_RETRIES) {
-            showMessage('Too many failed attempts. Please try again later.', 'error');
-            watchAdBtn.disabled = false;
-            adContainer.style.display = 'none';
-            return;
-        }
-        showMessage('Retrying ad load...', 'loading');
-    } else {
-        showMessage('Loading ad...', 'loading');
-    }
-    
-    lastAdAttempt = now;
     watchAdBtn.disabled = true;
-    adContainer.style.display = 'block';
     
-    show_8975602().then(() => {
+    // Try to show rewarded popup ad first
+    show_8975602('pop').then(() => {
         // Ad watched successfully
         userData.balance += EARNING_PER_AD;
         userData.totalEarned += EARNING_PER_AD;
@@ -397,180 +380,41 @@ function watchAd(isRetry = false) {
         saveState();
         updateUI();
         showMessage(`You earned $${EARNING_PER_AD.toFixed(3)} by watching an ad!`, 'success');
-        adRetryCount = 0; // Reset retry count on success
+        adRetryCount = 0;
     }).catch(error => {
-        console.error('Ad failed to load:', error);
-        adRetryCount++;
-        
-        if (adRetryCount < MAX_AD_RETRIES) {
-            // Attempt retry after delay
-            setTimeout(() => {
-                watchAd(true);
-            }, AD_RETRY_DELAY);
-            showMessage('Ad load failed - retrying...', 'info');
-        } else {
-            showMessage('Ad canceled - please try again in a few moments', 'error');
-            adRetryCount = 0; // Reset retry count after max attempts
-        }
+        console.error('Popup ad failed, trying interstitial:', error);
+        // If popup fails, try regular interstitial
+        show_8975602().then(() => {
+            userData.balance += EARNING_PER_AD;
+            userData.totalEarned += EARNING_PER_AD;
+            updateStatistics(true);
+            saveState();
+            updateUI();
+            showMessage(`You earned $${EARNING_PER_AD.toFixed(3)} by watching an ad!`, 'success');
+            adRetryCount = 0;
+        }).catch(e => {
+            console.error('All ad attempts failed:', e);
+            showMessage('Failed to load ad. Please try again later.', 'error');
+            adRetryCount++;
+        });
     }).finally(() => {
-        if (adRetryCount === 0) { // Only enable button if we're not retrying
+        setTimeout(() => {
             watchAdBtn.disabled = false;
-            adContainer.style.display = 'none';
-        }
+        }, 1000); // Changed to 1-second cooldown
     });
 }
-// When adding to balance
-function addToBalance(amount) {
-    userData.balance += amount;
-    document.getElementById('balance').textContent = userData.balance.toFixed(3);
-    withdrawBtn.disabled = userData.balance < 5.00;
-    saveUserData();
-}
-
-// When processing a referral
-function addReferral(referralMember) {
-    if (userData.referralCount < 5) {
-        userData.referralCount++;
-        userData.referralEarnings += 0.05;
-        userData.referralMembers.push(referralMember);
-        
-        // Update UI
-        document.getElementById('referralCount').textContent = userData.referralCount;
-        document.getElementById('referralEarnings').textContent = userData.referralEarnings.toFixed(3);
-        document.getElementById('currentReferrals').textContent = userData.referralCount;
-        document.getElementById('remainingSlots').textContent = 5 - userData.referralCount;
-        
-        // Update progress bar
-        const progressPercentage = (userData.referralCount / 5) * 100;
-        document.getElementById('referralProgressBar').style.width = `${progressPercentage}%`;
-        
-        saveUserData();
-    }
-}
-
-// When processing a withdrawal
-function processWithdrawal(amount, phoneNumber, paymentMethod) {
-    const withdrawal = {
-        amount: amount,
-        phoneNumber: phoneNumber,
-        paymentMethod: paymentMethod,
-        date: new Date().toISOString()
-    };
-    
-    userData.balance -= amount;
-    userData.withdrawalHistory.push(withdrawal);
-    document.getElementById('balance').textContent = userData.balance.toFixed(3);
-    withdrawBtn.disabled = userData.balance < 5.00;
-    
-    saveUserData();
-}
-
-// Event Listeners
-watchAdBtn.addEventListener('click', () => watchAd());
-withdrawBtn.addEventListener('click', handleWithdrawal);
-submitEcvBtn.addEventListener('click', () => processWithdrawal(ecvInput.value));
-closeModalBtn.addEventListener('click', () => {
-    ecvModal.style.display = 'none';
-    ecvInput.value = '';
-    showMessage('Withdrawal canceled', 'info');
+// Initialize ads when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeInAppAds();
+    // Initial ad setup
+    show_8975602({ 
+        type: 'inApp', 
+        inAppSettings: { 
+            frequency: 2,
+            capping: 0.1,
+            interval: 30,
+            timeout: 5,
+            everyPage: false
+        } 
+    });
 });
-
-// Handle Referral Copy Button with better UX
-copyRefBtn.addEventListener('click', async () => {
-    try {
-        await navigator.clipboard.writeText(referralLinkInput.value);
-        showMessage('Referral link copied! Share with friends to earn rewards! 🎁', 'success');
-    } catch (err) {
-        // Fallback for older browsers
-        referralLinkInput.select();
-        document.execCommand('copy');
-        showMessage('Referral link copied! Share with friends to earn rewards! 🎁', 'success');
-    }
-});
-
-// Check for Referral Code on Load (from Telegram bot)
-function checkReferral() {
-    const startParam = tg.initDataUnsafe?.start_param;
-    const deviceId = getDeviceId();
-    const myReferralCode = localStorage.getItem(`referral_code_${deviceId}`);
-    
-    if (startParam && !userData.referredBy && startParam !== myReferralCode) {
-        userData.referredBy = startParam;
-        saveState();
-        
-        // Send referral data to Telegram
-        tg.sendData(JSON.stringify({
-            type: 'referral',
-            referralCode: startParam,
-            newUser: {
-                code: myReferralCode,
-                deviceId: deviceId,
-                name: tg.initDataUnsafe?.user?.first_name || 'Anonymous User',
-                id: tg.initDataUnsafe?.user?.id
-            }
-        }));
-    }
-}
-
-// Add referral member
-function addReferralMember(memberData) {
-    const deviceId = getDeviceId();
-    const currentReferrals = userData.referralCount || 0;
-    
-    // Check if device has reached referral limit
-    if (currentReferrals >= MAX_REFERRALS_PER_DEVICE) {
-        showMessage(`Maximum referral limit (${MAX_REFERRALS_PER_DEVICE}) reached! 🔒`, 'error');
-        return false;
-    }
-    
-    if (!userData.referralMembers) {
-        userData.referralMembers = [];
-    }
-    
-    const newMember = {
-        id: memberData.id,
-        name: memberData.name || 'Anonymous User',
-        joinDate: new Date().toISOString(),
-        lastActive: new Date().toISOString(),
-        totalEarned: 0,
-        deviceId: deviceId
-    };
-    
-    // Add the new member and update stats
-    userData.referralMembers.push(newMember);
-    userData.referralCount = currentReferrals + 1;
-    userData.referralEarnings = (userData.referralEarnings || 0) + REFERRAL_BONUS;
-    userData.balance = (userData.balance || 0) + REFERRAL_BONUS; // Add bonus to current balance
-    
-    saveState();
-    updateUI();
-    
-    const remainingSlots = MAX_REFERRALS_PER_DEVICE - userData.referralCount;
-    showMessage(`New referral member joined! Earned $${REFERRAL_BONUS.toFixed(3)}! Current balance: $${userData.balance.toFixed(3)} 🎉 (${remainingSlots} slots remaining)`, 'success');
-    return true;
-}
-
-// Add referral bonus with improved feedback
-function addReferralBonus(referrerCode, userData) {
-    const referrerData = loadFromStorage(`userData_${referrerCode}`, null);
-    if (referrerData) {
-        referrerData.balance += REFERRAL_BONUS;
-        referrerData.referralCount = (referrerData.referralCount || 0) + 1;
-        referrerData.referralEarnings = (referrerData.referralEarnings || 0) + REFERRAL_BONUS;
-        
-        // Add member to referrer's list
-        addReferralMember({
-            id: userData.id,
-            name: userData.name
-        });
-        
-        saveToStorage(`userData_${referrerCode}`, referrerData);
-        showMessage(`New referral! You earned $${REFERRAL_BONUS.toFixed(3)}! 🎉`, 'success');
-        updateUI();
-    }
-}
-
-// Initialize
-checkReferral();
-updateUI();
-initializeInAppAds();

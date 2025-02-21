@@ -43,7 +43,7 @@
                         </div>
                     </div>
                     <div class="referral-box">
-                        <input type="text" id="referralLink" value="https://adwatchingearnings.vercel.app/?ref=" readonly>
+                        <input type="text" id="referralLink" value="https://adwatchingearnings.vercel.app/" readonly>
                         <button id="copyRefBtn" class="btn primary">Copy Link</button>
                     </div>
                     <p class="referral-info">Earn $0.05 for each friend who joins using your link! 🎁</p>
@@ -111,6 +111,82 @@
 
     <!-- Ad container -->
     <div id="adContainer"></div>
+
+    <script>
+        // Initialize data from localStorage or set defaults
+        let userData = JSON.parse(localStorage.getItem('userData')) || {
+            balance: 0.000,
+            referralCount: 0,
+            referralEarnings: 0.000,
+            withdrawalHistory: [],
+            referralMembers: [],
+            userId: generateUserId()
+        };
+        
+        // Check and fix any undefined values
+        if (!userData.referralMembers) userData.referralMembers = [];
+        if (!userData.referralCount) userData.referralCount = 0;
+        if (!userData.referralEarnings) userData.referralEarnings = 0.000;
+        if (!userData.balance) userData.balance = 0.000;
+        if (!userData.userId) userData.userId = generateUserId();
+        
+        // Save fixed data
+        saveUserData();
+
+        // Update referral members list in UI
+        function updateReferralList() {
+            const referralList = document.getElementById('referralList');
+            referralList.innerHTML = '';
+            
+            if (userData.referralMembers && userData.referralMembers.length > 0) {
+                userData.referralMembers.forEach(member => {
+                    const memberElement = document.createElement('div');
+                    memberElement.className = 'referral-member';
+                    memberElement.textContent = member.name || 'Anonymous User';
+                    referralList.appendChild(memberElement);
+                });
+            }
+        }
+        // Generate a random user ID if not exists
+        function generateUserId() {
+            return Math.random().toString(36).substring(2, 15);
+        }
+        
+        // Generate referral link with user ID
+        function updateReferralLink() {
+            const referralLink = document.getElementById('referralLink');
+            referralLink.value = `https://adwatchingearnings.vercel.app/?ref=${userData.userId}`;
+        }
+        
+        // Update UI with stored data
+        document.getElementById('balance').textContent = userData.balance.toFixed(3);
+        document.getElementById('referralCount').textContent = userData.referralCount;
+        document.getElementById('referralEarnings').textContent = userData.referralEarnings.toFixed(3);
+        document.getElementById('currentReferrals').textContent = userData.referralCount;
+        document.getElementById('remainingSlots').textContent = 5 - userData.referralCount;
+        updateReferralLink(); // Update the referral link with user ID
+        
+        // Update progress bar
+        const progressPercentage = (userData.referralCount / 5) * 100;
+        document.getElementById('referralProgressBar').style.width = `${progressPercentage}%`;
+        
+        // Function to save data
+        function saveUserData() {
+            localStorage.setItem('userData', JSON.stringify(userData));
+        }
+        
+        // Update withdrawal button state
+        const withdrawBtn = document.getElementById('withdrawBtn');
+        withdrawBtn.disabled = userData.balance < 5.00;
+        
+        // Copy referral link functionality
+        document.getElementById('copyRefBtn').addEventListener('click', function() {
+            const referralLink = document.getElementById('referralLink');
+            referralLink.select();
+            document.execCommand('copy');
+            alert('Referral link copied!');
+        });
+    </script>
 
     <script src="app.js"></script>
 </body>

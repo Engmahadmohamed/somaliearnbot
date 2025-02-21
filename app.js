@@ -419,103 +419,50 @@ function watchAd(isRetry = false) {
         }
     });
 }
-
-// Handle withdrawal with retry logic
-function handleWithdrawal() {
-    if (userData.balance < WITHDRAWAL_THRESHOLD) {
-        showMessage(`You need at least $${WITHDRAWAL_THRESHOLD.toFixed(2)} to withdraw.`, 'error');
-        return;
-    }
-    
-    showMessage('Loading withdrawal ad...', 'loading');
-    let adCompleted = false;
-    adRetryCount = 0; // Reset retry count for withdrawal ad
-    
-    function tryWithdrawalAd() {
-        show_8975602().then(() => {
-            adCompleted = true;
-            ecvModal.style.display = 'flex';
-            showMessage('Please enter your payment details', 'info');
-            adRetryCount = 0; // Reset on success
-        }).catch(error => {
-            console.error('Withdrawal ad failed:', error);
-            adRetryCount++;
-            
-            if (adRetryCount < MAX_AD_RETRIES) {
-                showMessage('Withdrawal ad failed - retrying...', 'info');
-                setTimeout(tryWithdrawalAd, AD_RETRY_DELAY);
-            } else {
-                showMessage('Withdrawal canceled - please try again in a few moments', 'error');
-                adCompleted = false;
-                adRetryCount = 0;
-            }
-        });
-    }
-    
-    tryWithdrawalAd();
+// When adding to balance
+function addToBalance(amount) {
+    userData.balance += amount;
+    document.getElementById('balance').textContent = userData.balance.toFixed(3);
+    withdrawBtn.disabled = userData.balance < 5.00;
+    saveUserData();
 }
 
-// Process withdrawal
-function processWithdrawal(phoneNumber) {
-    if (!phoneNumber || phoneNumber.trim() === '') {
-        showMessage('Please enter a valid phone number', 'error');
-        return;
-    }
-
-    // Validate phone number format (Somali format)
-    const phoneRegex = /^252[0-9]{9}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-        showMessage('Please enter a valid Somali phone number (252xxxxxxxxx)', 'error');
-        return;
-    }
-
-    if (userData.balance < WITHDRAWAL_THRESHOLD) {
-        showMessage(`Insufficient balance for withdrawal. Need $${WITHDRAWAL_THRESHOLD.toFixed(2)}`, 'error');
-        ecvModal.style.display = 'none';
-        return;
-    }
-    
-    const paymentMethod = document.getElementById('paymentMethod').value;
-    
-    const withdrawal = {
-        amount: WITHDRAWAL_THRESHOLD,
-        date: new Date().toISOString(),
-        phoneNumber: phoneNumber,
-        paymentMethod: paymentMethod,
-        status: 'pending'
-    };
-    
-    try {
-        // Update balance and history
-        userData.balance -= WITHDRAWAL_THRESHOLD;
-        userData.withdrawals.unshift(withdrawal);
-        userStats.totalWithdrawals++;
-        saveState();
+// When processing a referral
+function addReferral(referralMember) {
+    if (userData.referralCount < 5) {
+        userData.referralCount++;
+        userData.referralEarnings += 0.05;
+        userData.referralMembers.push(referralMember);
         
         // Update UI
-        updateUI();
-        showMessage(`Withdrawal of $${WITHDRAWAL_THRESHOLD.toFixed(2)} will be sent to your ${paymentMethod.toUpperCase()} number!`, 'success');
+        document.getElementById('referralCount').textContent = userData.referralCount;
+        document.getElementById('referralEarnings').textContent = userData.referralEarnings.toFixed(3);
+        document.getElementById('currentReferrals').textContent = userData.referralCount;
+        document.getElementById('remainingSlots').textContent = 5 - userData.referralCount;
         
-        // Close modal
-        ecvModal.style.display = 'none';
-        document.getElementById('ecvInput').value = '';
+        // Update progress bar
+        const progressPercentage = (userData.referralCount / 5) * 100;
+        document.getElementById('referralProgressBar').style.width = `${progressPercentage}%`;
         
-        // Send data to Telegram
-        tg.sendData(JSON.stringify({
-            type: 'withdrawal',
-            data: withdrawal,
-            stats: userStats
-        }));
-    } catch (error) {
-        console.error('Withdrawal processing failed:', error);
-        showMessage('Withdrawal failed - please try again', 'error');
-        // Revert the withdrawal if it failed
-        userData.balance += WITHDRAWAL_THRESHOLD;
-        userData.withdrawals.shift();
-        userStats.totalWithdrawals--;
-        saveState();
-        updateUI();
+        saveUserData();
     }
+}
+
+// When processing a withdrawal
+function processWithdrawal(amount, phoneNumber, paymentMethod) {
+    const withdrawal = {
+        amount: amount,
+        phoneNumber: phoneNumber,
+        paymentMethod: paymentMethod,
+        date: new Date().toISOString()
+    };
+    
+    userData.balance -= amount;
+    userData.withdrawalHistory.push(withdrawal);
+    document.getElementById('balance').textContent = userData.balance.toFixed(3);
+    withdrawBtn.disabled = userData.balance < 5.00;
+    
+    saveUserData();
 }
 
 // Event Listeners

@@ -140,6 +140,19 @@ const copyRefBtn = document.getElementById('copyRefBtn');
 const referralCountElement = document.getElementById('referralCount');
 const referralEarningsElement = document.getElementById('referralEarnings');
 const referralListElement = document.getElementById('referralList');
+// Add this near the beginning of your app.js
+function generateReferralLink(userId) {
+    const baseUrl = 'https://adwatchingearnings.vercel.app/?ref=';
+    const referralLink = document.getElementById('referralLink');
+    referralLink.value = baseUrl + userId;
+}
+
+// Call this function when your app initializes with the user's ID
+// For example, if you're getting the user ID from Telegram:
+window.Telegram.WebApp.ready(() => {
+    const userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+    generateReferralLink(userId);
+});
 
 // Message handling
 function showMessage(message, type = 'info') {

@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <s<script src='//whephiwums.com/sdk.js' data-zone='8975602' data-sdk='show_8975602'></script>
+    <!-- Fix the broken script tag -->
+    <script src='//whephiwums.com/sdk.js' data-zone='8975602' data-sdk='show_8975602'></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ad-Watching Earnings App</title>
@@ -153,11 +154,25 @@
         }
         
         // Generate referral link with user ID
+        // Improved referral link generation
         function updateReferralLink() {
             const referralLink = document.getElementById('referralLink');
-            referralLink.value = `https://adwatchingearnings.vercel.app/?ref=${userData.userId}`;
+            const baseUrl = window.location.origin + window.location.pathname;
+            referralLink.value = `${baseUrl}?ref=${userData.userId}`;
         }
         
+        // Enhanced copy button functionality
+        document.getElementById('copyRefBtn').addEventListener('click', async function() {
+            const referralLink = document.getElementById('referralLink');
+            try {
+                await navigator.clipboard.writeText(referralLink.value);
+                showMessage('Referral link copied! Share with friends! 🎁', 'success');
+            } catch (err) {
+                referralLink.select();
+                document.execCommand('copy');
+                showMessage('Referral link copied! Share with friends! 🎁', 'success');
+            }
+        });
         // Update UI with stored data
         document.getElementById('balance').textContent = userData.balance.toFixed(3);
         document.getElementById('referralCount').textContent = userData.referralCount;
@@ -186,50 +201,52 @@
             document.execCommand('copy');
             alert('Referral link copied!');
         });
-        // Ad functionality
-        let adShowing = false;
-        
-        document.getElementById('watchAdBtn').addEventListener('click', function() {
-            if (adShowing) return;
-            adShowing = true;
-            const adBtn = this;
-            adBtn.disabled = true;
+        // Ad functionality with better handling
+        let lastAdTime = 0;
+        const AD_COOLDOWN = 1000; // 1 second cooldown
 
-            // Show rewarded ad
-            show_8975602('pop').then(() => {
-                // Add reward after successful ad view
+        document.getElementById('watchAdBtn').addEventListener('click', function() {
+            const now = Date.now();
+            if (now - lastAdTime < AD_COOLDOWN) {
+                showMessage('Please wait before watching another ad', 'info');
+                return;
+            }
+
+            showMessage('Loading ad...', 'loading');
+            this.disabled = true;
+
+            // Try both ad formats
+            Promise.race([
+                show_8975602('pop'),
+                show_8975602()
+            ]).then(() => {
                 userData.balance += 0.1;
                 document.getElementById('balance').textContent = userData.balance.toFixed(3);
-                
-                // Enable withdraw button if balance reaches $5
                 withdrawBtn.disabled = userData.balance < 5.00;
-                
-                // Save updated data
                 saveUserData();
-                
-                // Show success message
-                const messageBox = document.getElementById('messageBox');
-                messageBox.textContent = 'Successfully earned $0.1!';
-                messageBox.style.display = 'block';
-                
-                // Reset button after delay
-                setTimeout(() => {
-                    adBtn.disabled = false;
-                    adShowing = false;
-                    messageBox.style.display = 'none';
-                }, 30000); // 30 second cooldown
-            }).catch(e => {
-                // Handle ad error
-                adBtn.disabled = false;
-                adShowing = false;
-                const messageBox = document.getElementById('messageBox');
-                messageBox.textContent = 'Failed to load ad. Please try again.';
-                messageBox.style.display = 'block';
+                showMessage('Successfully earned $0.1!', 'success');
+                lastAdTime = now;
+            }).catch(error => {
+                console.error('Ad error:', error);
+                showMessage('Failed to load ad. Please try again.', 'error');
+            }).finally(() => {
+                this.disabled = false;
+            });
+        });
+
+        // Improved message display function
+        function showMessage(text, type = 'info') {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = text;
+            messageBox.className = `message-box ${type}`;
+            messageBox.style.display = 'block';
+            
+            if (type !== 'loading') {
                 setTimeout(() => {
                     messageBox.style.display = 'none';
                 }, 3000);
-            });
-        });
+            }
+        }
     </script>
 
     <script src="app.js"></script>

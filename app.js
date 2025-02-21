@@ -30,7 +30,7 @@ function initializeInAppAds() {
 const EARNING_PER_AD = 0.1;
 const WITHDRAWAL_THRESHOLD = 5.00;
 const AD_DURATION = 1000; // Changed to 1 second
-const POPUP_INTERVAL = 120000; // Show popup every 2 minutes
+const POPUP_INTERVAL = 120000;
 const MAX_AD_RETRIES = 2; // Maximum number of ad retry attempts
 const REFERRAL_BONUS = 0.05; // Referral bonus amount
 const MAX_REFERRALS_PER_DEVICE = 5; // Maximum referrals per device
